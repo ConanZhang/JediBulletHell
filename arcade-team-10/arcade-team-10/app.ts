@@ -80,7 +80,7 @@ window.onload = function ()
 		game.load.image('laserPurple', 'assets/laserPurple.png');
 
 		game.load.tilemap('map', 'assets/BossRoom.csv', null, Phaser.Tilemap.CSV);
-		game.load.image('background', 'assets/BossRoom.png');
+		game.load.image('background', 'assets/Large Room Boss fight.png');
 
 		game.load.image('heart', 'assets/Heart.png');
 

@@ -770,7 +770,7 @@ window.onload = function ()
             bossHud.children[0].scale.setTo(6.4 * (boss.health / boss.maxHealth), 1.2);
             console.log(boss.health);
 
-            if (boss.health != 0)
+            if (boss.health > 0)
             {
                 bossInvuln();
                 game.time.events.add(100, bossInvuln, this);

@@ -14,6 +14,7 @@ window.onload = function ()
 	//  Be sure to replace it with an updated version before you start experimenting with adding your own code.
 	var game = new Phaser.Game(1920, 1080, Phaser.AUTO, '', { preload: preload, create: create, update: update });
 
+	let pad1: Phaser.SinglePad;
 	let keyState: Phaser.Keyboard;
 	let player: Player;
 	var enemies;
@@ -123,6 +124,10 @@ window.onload = function ()
 
 	function create()
 	{
+		game.input.gamepad.start();
+
+		pad1 = game.input.gamepad.pad1;
+
 		loop = game.add.audio('loop', 3, true);
 
 		drop = game.add.audio('drop', 4.5, true);
@@ -265,7 +270,7 @@ window.onload = function ()
 
 		keyState = game.input.keyboard;
 
-		player.pUpdate(deltaTime, keyState);
+		player.pUpdate(deltaTime, keyState, pad1);
 		enemies.forEach(function (enemy)
 		{
 			enemy.eUpdate(deltaTime);
@@ -566,7 +571,7 @@ window.onload = function ()
 
 		boss.update();
 
-		if (keyState.isDown(Phaser.KeyCode.SPACEBAR) && introPlaying)
+		if ((keyState.isDown(Phaser.KeyCode.SPACEBAR) || pad1.isDown(Phaser.Gamepad.XBOX360_A)) && introPlaying)
 		{
 			introEnd();
 		}
@@ -1923,20 +1928,21 @@ class Player extends Phaser.Sprite
 		}
 	}
 
-	pUpdate(time: number, keyState: Phaser.Keyboard)
+	pUpdate(time: number, keyState: Phaser.Keyboard, pad1: Phaser.SinglePad)
 	{
 		if (this.alive)
 		{
-			if (keyState.isDown(Phaser.KeyCode.SPACEBAR) && !(this.rAttack.isPlaying || this.lAttack.isPlaying || this.uAttack.isPlaying || this.dAttack.isPlaying || this.urAttack.isPlaying || this.ulAttack.isPlaying || this.drAttack.isPlaying || this.dlAttack.isPlaying))
+			if ((keyState.isDown(Phaser.KeyCode.SPACEBAR) || pad1.isDown(Phaser.Gamepad.XBOX360_A)) && !(this.rAttack.isPlaying || this.lAttack.isPlaying || this.uAttack.isPlaying || this.dAttack.isPlaying || this.urAttack.isPlaying || this.ulAttack.isPlaying || this.drAttack.isPlaying || this.dlAttack.isPlaying))
 			{
 				this.aim = true;
 			}
 
 			this.weapon.trackSprite(this, 0, 0);
 
-			if (((keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP)) || (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN))) && ((keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT)) || (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT))) && !(((keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP)) && (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN))) || ((keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT)) && (keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT)))))
+			if (((keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_UP) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) < -0.1)) || (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_DOWN) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) > 0.1))) && ((keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_RIGHT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) > 0.1)) || (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_LEFT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) < -0.1)))
+				&& !(((keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_UP) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) < -0.1)) && (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_DOWN) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) > 0.1))) || ((keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_LEFT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) < -0.1)) && (keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_RIGHT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) > 0.1)))))
 			{
-				if (keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP))
+				if (keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_UP) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) < -0.1))
 				{
 					this.pVelocityY -= Math.sqrt(Math.pow(this.pSpeed, 2) / 2);
 					this.weapon.fireAngle = 270;
@@ -1947,7 +1953,7 @@ class Player extends Phaser.Sprite
 					this.weapon.fireAngle = 90;
 				}
 
-				if (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT))
+				if (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_LEFT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) < -0.1))
 				{
 					this.pVelocityX -= Math.sqrt(Math.pow(this.pSpeed, 2) / 2);
 					if (this.weapon.fireAngle > 180)
@@ -1974,12 +1980,12 @@ class Player extends Phaser.Sprite
 			}
 			else
 			{
-				if (keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP))
+				if (keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_UP) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) < -0.1))
 				{
 					this.pVelocityY -= this.pSpeed;
 					this.weapon.fireAngle = 270;
 				}
-				if (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN))
+				if (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_DOWN) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) > 0.1))
 				{
 					this.pVelocityY += this.pSpeed;
 					if (this.weapon.fireAngle == 270)
@@ -1992,12 +1998,12 @@ class Player extends Phaser.Sprite
 					}
 				}
 
-				if (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT))
+				if (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_LEFT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) < -0.1))
 				{
 					this.pVelocityX -= this.pSpeed;
 					this.weapon.fireAngle = 180;
 				}
-				if (keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT))
+				if (keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_RIGHT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) > 0.1))
 				{
 					this.pVelocityX += this.pSpeed;
 					this.weapon.fireAngle = 0;

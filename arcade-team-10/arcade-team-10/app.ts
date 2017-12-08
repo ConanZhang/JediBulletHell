@@ -63,7 +63,9 @@ window.onload = function ()
 	var intro;
 	var introSprite;
 
-    let introPlaying: boolean;
+	let introPlaying: boolean;
+	let titleUp: boolean;
+	let title: Phaser.Sprite;
     let gameOver: Phaser.Sprite;
     let victory: Phaser.Sprite;
 
@@ -118,6 +120,7 @@ window.onload = function ()
 		game.load.audio('bossDeath', 'assets/audio/BossDeath.wav');
 
 		game.load.video('intro', 'assets/Intro.webm');
+		game.load.image('title', 'assets/title.png');
 		game.load.image('gameOver', 'assets/GameOver.png');
 		game.load.image('victory', 'assets/Victory.png');
 	}
@@ -236,8 +239,6 @@ window.onload = function ()
 		bossHud.children[1].position.set(game.camera.width / 4, game.camera.height / 1.2, 5);
 		bossHud.children[1].alpha = 0;
 
-
-
 		var style = { font: "bold 32px Arial", fill: '#fff', align: "right", boundsAlignH: "right" };
 		bossHealthText = game.add.text(game.camera.width / 3.3, game.camera.height / 1.25, 'D3AD M30W', style);
 		bossHealthText.setTextBounds(0, 0, 100, 100);
@@ -246,21 +247,24 @@ window.onload = function ()
 
 		enemyKillCount = 0;
 
-		intro = game.add.video('intro');
-		introSprite = intro.addToWorld(0, 0, 0, 0, 1, 1);
-		introSprite.fixedToCamera = true;
-		intro.play();
-		introPlaying = true;
-		intro.onComplete.add(introEnd, this);
+		//intro = game.add.video('intro');
+		//introSprite = intro.addToWorld(0, 0, 0, 0, 1, 1);
+		//introSprite.fixedToCamera = true;
+		//intro.play();
+		//introPlaying = true;
+		//intro.onComplete.add(introEnd, this);
+
+		title = game.add.sprite(0, 0, 'title');
+		title.fixedToCamera = true;
+		title.renderable = true;
+		titleUp = true;
 
 		gameOver = game.add.sprite(0, 0, 'gameOver');
 		gameOver.fixedToCamera = true;
-		gameOver.scale.setTo(1.25, 1.25);
 		gameOver.renderable = false;
 
 		victory = game.add.sprite(0, 0, 'victory');
 		victory.fixedToCamera = true;
-		victory.scale.setTo(1.25, 1.25);
 		victory.renderable = false;
 	}
 
@@ -571,20 +575,28 @@ window.onload = function ()
 
 		boss.update();
 
-		if ((keyState.isDown(Phaser.KeyCode.SPACEBAR) || pad1.isDown(Phaser.Gamepad.XBOX360_A)) && introPlaying)
+		if ((keyState.isDown(Phaser.KeyCode.SPACEBAR) || pad1.isDown(Phaser.Gamepad.XBOX360_A)) && titleUp)//introPlaying)
 		{
-			introEnd();
+			//introEnd();
+			titleEnd();
 		}
 		//render();
 	}
 
-	function introEnd()
-	{
-		introSprite.kill();
-		intro.stop();
+	//function introEnd()
+	//{
+	//	introSprite.kill();
+	//	intro.stop();
 
+	//	loop.play();
+	//	introPlaying = false;
+	//}
+
+	function titleEnd()
+	{
+		title.kill();
+		titleUp = false;
 		loop.play();
-		introPlaying = false;
 	}
 
 	function render()
@@ -707,10 +719,16 @@ window.onload = function ()
 				playerHit.play();
 			}
 
-			if (player.health < 1)
+			if (player.health < 1 && !victory.renderable)
 			{
 				player.pDeath();
 				gameOver.renderable = true;
+				boss.kill();
+				player.kill();
+				enemies.forEach(function (enemy)
+				{
+					enemy.kill();
+				}, this);
 			}
 			else
 			{
@@ -756,12 +774,17 @@ window.onload = function ()
             {
                 bossInvuln();
                 game.time.events.add(100, bossInvuln, this);
-            }
-            else
+			}
+			else if (!gameOver.renderable)
             {
                 victory.renderable = true;
                 boss.bDeath();
 				boss.kill();
+				player.kill();
+				enemies.forEach(function (enemy)
+				{
+					enemy.kill();
+				}, this);
             }
 		}
 	}

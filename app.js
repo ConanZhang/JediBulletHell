@@ -21,6 +21,7 @@ window.onload = function () {
     //  Although it will work fine with this tutorial, it's almost certainly not the most current version.
     //  Be sure to replace it with an updated version before you start experimenting with adding your own code.
     var game = new Phaser.Game(1920, 1080, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+    var pad1;
     var keyState;
     var player;
     var enemies;
@@ -59,6 +60,8 @@ window.onload = function () {
     var intro;
     var introSprite;
     var introPlaying;
+    var titleUp;
+    var title;
     var gameOver;
     var victory;
     function preload() {
@@ -72,7 +75,7 @@ window.onload = function () {
         game.load.image('laserBlue', 'assets/laserBlue.png');
         game.load.image('laserPurple', 'assets/laserPurple.png');
         game.load.tilemap('map', 'assets/BossRoom.csv', null, Phaser.Tilemap.CSV);
-        game.load.image('background', 'assets/BossRoom.png');
+        game.load.image('background', 'assets/Large Room Boss fight.png');
         game.load.image('heart', 'assets/Heart.png');
         game.load.spritesheet('laserH', 'assets/LaserH.png', 256, 64, 6, 0, 0);
         game.load.spritesheet('BossLaserH', 'assets/longLaser.png', 1536, 64, 6, 0, 0);
@@ -99,10 +102,13 @@ window.onload = function () {
         game.load.audio('shake', 'assets/audio/Shake.wav');
         game.load.audio('bossDeath', 'assets/audio/BossDeath.wav');
         game.load.video('intro', 'assets/Intro.webm');
+        game.load.image('title', 'assets/title.png');
         game.load.image('gameOver', 'assets/GameOver.png');
         game.load.image('victory', 'assets/Victory.png');
     }
     function create() {
+        game.input.gamepad.start();
+        pad1 = game.input.gamepad.pad1;
         loop = game.add.audio('loop', 3, true);
         drop = game.add.audio('drop', 4.5, true);
         healthPickup = game.add.audio('healthPickup');
@@ -196,25 +202,27 @@ window.onload = function () {
         bossHealthText.fixedToCamera = true;
         bossHealthText.alpha = 0;
         enemyKillCount = 0;
-        intro = game.add.video('intro');
-        introSprite = intro.addToWorld(0, 0, 0, 0, 1, 1);
-        introSprite.fixedToCamera = true;
-        intro.play();
-        introPlaying = true;
-        intro.onComplete.add(introEnd, this);
+        //intro = game.add.video('intro');
+        //introSprite = intro.addToWorld(0, 0, 0, 0, 1, 1);
+        //introSprite.fixedToCamera = true;
+        //intro.play();
+        //introPlaying = true;
+        //intro.onComplete.add(introEnd, this);
+        title = game.add.sprite(0, 0, 'title');
+        title.fixedToCamera = true;
+        title.renderable = true;
+        titleUp = true;
         gameOver = game.add.sprite(0, 0, 'gameOver');
         gameOver.fixedToCamera = true;
-        gameOver.scale.setTo(1.25, 1.25);
         gameOver.renderable = false;
         victory = game.add.sprite(0, 0, 'victory');
         victory.fixedToCamera = true;
-        victory.scale.setTo(1.25, 1.25);
         victory.renderable = false;
     }
     function update() {
         var deltaTime = game.time.elapsed / 10;
         keyState = game.input.keyboard;
-        player.pUpdate(deltaTime, keyState);
+        player.pUpdate(deltaTime, keyState, pad1);
         enemies.forEach(function (enemy) {
             enemy.eUpdate(deltaTime);
         }, this);
@@ -448,16 +456,23 @@ window.onload = function () {
             }
         }
         boss.update();
-        if (keyState.isDown(Phaser.KeyCode.SPACEBAR) && introPlaying) {
-            introEnd();
+        if ((keyState.isDown(Phaser.KeyCode.SPACEBAR) || pad1.isDown(Phaser.Gamepad.XBOX360_A)) && titleUp) {
+            //introEnd();
+            titleEnd();
         }
         //render();
     }
-    function introEnd() {
-        introSprite.kill();
-        intro.stop();
+    //function introEnd()
+    //{
+    //	introSprite.kill();
+    //	intro.stop();
+    //	loop.play();
+    //	introPlaying = false;
+    //}
+    function titleEnd() {
+        title.kill();
+        titleUp = false;
         loop.play();
-        introPlaying = false;
     }
     function render() {
         if (pClearCircle.alive) {
@@ -544,9 +559,14 @@ window.onload = function () {
                 game.time.events.add(1000, playerInvuln, this);
                 playerHit.play();
             }
-            if (player.health < 1) {
+            if (player.health < 1 && !victory.renderable) {
                 player.pDeath();
                 gameOver.renderable = true;
+                boss.kill();
+                player.kill();
+                enemies.forEach(function (enemy) {
+                    enemy.kill();
+                }, this);
             }
             else {
                 playerClear();
@@ -579,10 +599,14 @@ window.onload = function () {
                 bossInvuln();
                 game.time.events.add(100, bossInvuln, this);
             }
-            else {
+            else if (!gameOver.renderable) {
                 victory.renderable = true;
                 boss.bDeath();
                 boss.kill();
+                player.kill();
+                enemies.forEach(function (enemy) {
+                    enemy.kill();
+                }, this);
             }
         }
     }
@@ -1467,14 +1491,15 @@ var Player = (function (_super) {
             this.bottomLeftSaber.reset(-38, 23);
         }
     };
-    Player.prototype.pUpdate = function (time, keyState) {
+    Player.prototype.pUpdate = function (time, keyState, pad1) {
         if (this.alive) {
-            if (keyState.isDown(Phaser.KeyCode.SPACEBAR) && !(this.rAttack.isPlaying || this.lAttack.isPlaying || this.uAttack.isPlaying || this.dAttack.isPlaying || this.urAttack.isPlaying || this.ulAttack.isPlaying || this.drAttack.isPlaying || this.dlAttack.isPlaying)) {
+            if ((keyState.isDown(Phaser.KeyCode.SPACEBAR) || pad1.isDown(Phaser.Gamepad.XBOX360_A)) && !(this.rAttack.isPlaying || this.lAttack.isPlaying || this.uAttack.isPlaying || this.dAttack.isPlaying || this.urAttack.isPlaying || this.ulAttack.isPlaying || this.drAttack.isPlaying || this.dlAttack.isPlaying)) {
                 this.aim = true;
             }
             this.weapon.trackSprite(this, 0, 0);
-            if (((keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP)) || (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN))) && ((keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT)) || (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT))) && !(((keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP)) && (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN))) || ((keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT)) && (keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT))))) {
-                if (keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP)) {
+            if (((keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_UP) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) < -0.1)) || (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_DOWN) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) > 0.1))) && ((keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_RIGHT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) > 0.1)) || (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_LEFT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) < -0.1)))
+                && !(((keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_UP) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) < -0.1)) && (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_DOWN) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) > 0.1))) || ((keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_LEFT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) < -0.1)) && (keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_RIGHT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) > 0.1))))) {
+                if (keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_UP) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) < -0.1)) {
                     this.pVelocityY -= Math.sqrt(Math.pow(this.pSpeed, 2) / 2);
                     this.weapon.fireAngle = 270;
                 }
@@ -1482,7 +1507,7 @@ var Player = (function (_super) {
                     this.pVelocityY += Math.sqrt(Math.pow(this.pSpeed, 2) / 2);
                     this.weapon.fireAngle = 90;
                 }
-                if (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT)) {
+                if (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_LEFT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) < -0.1)) {
                     this.pVelocityX -= Math.sqrt(Math.pow(this.pSpeed, 2) / 2);
                     if (this.weapon.fireAngle > 180) {
                         this.weapon.fireAngle -= 45;
@@ -1502,11 +1527,11 @@ var Player = (function (_super) {
                 }
             }
             else {
-                if (keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP)) {
+                if (keyState.isDown(Phaser.KeyCode.W) || keyState.isDown(Phaser.KeyCode.UP) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_UP) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) < -0.1)) {
                     this.pVelocityY -= this.pSpeed;
                     this.weapon.fireAngle = 270;
                 }
-                if (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN)) {
+                if (keyState.isDown(Phaser.KeyCode.S) || keyState.isDown(Phaser.KeyCode.DOWN) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_DOWN) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) > 0.1)) {
                     this.pVelocityY += this.pSpeed;
                     if (this.weapon.fireAngle == 270) {
                         this.weapon.fireAngle = 0;
@@ -1515,11 +1540,11 @@ var Player = (function (_super) {
                         this.weapon.fireAngle = 90;
                     }
                 }
-                if (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT)) {
+                if (keyState.isDown(Phaser.KeyCode.A) || keyState.isDown(Phaser.KeyCode.LEFT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_LEFT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) < -0.1)) {
                     this.pVelocityX -= this.pSpeed;
                     this.weapon.fireAngle = 180;
                 }
-                if (keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT)) {
+                if (keyState.isDown(Phaser.KeyCode.D) || keyState.isDown(Phaser.KeyCode.RIGHT) || (pad1.isDown(Phaser.Gamepad.XBOX360_DPAD_RIGHT) || pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) > 0.1)) {
                     this.pVelocityX += this.pSpeed;
                     this.weapon.fireAngle = 0;
                 }
